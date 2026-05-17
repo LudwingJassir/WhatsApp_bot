@@ -2,9 +2,31 @@ const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const qrcodeLib = require("qrcode");
 const express = require("express");
+const fs = require("fs");
+const path = require("path");
 const { handleMessage } = require("./handlers/messageRouter");
 const { sendWelcome } = require("./handlers/welcomeHandler");
 const { randomDelay } = require("./utils/humanDelay");
+
+// ─── Limpiar locks de Chromium al iniciar ─────────────────────────────────────
+function cleanChromiumLocks() {
+  const lockFiles = [
+    ".wwebjs_auth/session-tournament-bot/SingletonLock",
+    ".wwebjs_auth/session-tournament-bot/SingletonCookie",
+    ".wwebjs_auth/session-tournament-bot/SingletonSocket",
+  ];
+  lockFiles.forEach((lockPath) => {
+    try {
+      if (fs.existsSync(lockPath)) {
+        fs.unlinkSync(lockPath);
+        console.log("🔓 Lock eliminado: " + lockPath);
+      }
+    } catch (e) {
+      console.warn("⚠️ No se pudo eliminar " + lockPath + ":", e.message);
+    }
+  });
+}
+cleanChromiumLocks();
 
 // ─── Servidor web para mostrar QR en Railway ──────────────────────────────────
 const app = express();
@@ -15,7 +37,7 @@ app.get("/", async (req, res) => {
   if (botReady) {
     return res.send(`
             <html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#111;color:#0f0">
-                <h1>✅ Hoshi-san está ONLINE</h1>
+                <h1>✅ Hoshi-chan está ONLINE</h1>
                 <p>El bot está conectado y funcionando correctamente.</p>
                 <p style="color:#888">No necesitas hacer nada más.</p>
             </body></html>
@@ -49,13 +71,15 @@ app.get("/shutdown", (req, res) => {
   if (token !== process.env.SHUTDOWN_TOKEN) {
     return res.status(403).send("❌ Token incorrecto.");
   }
-  res.send("🛑 Apagando Hoshi-san...");
+  res.send("🛑 Apagando Hoshi-chan...");
   console.log("🛑 Shutdown solicitado vía web.");
   setTimeout(() => process.exit(0), 1000);
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Panel QR disponible en el puerto ${PORT}`));
+app.listen(PORT, () =>
+  console.log(`🌐 Panel QR disponible en el puerto ${PORT}`),
+);
 
 // ─── Cliente WhatsApp ─────────────────────────────────────────────────────────
 const client = new Client({
@@ -89,7 +113,7 @@ client.on("qr", (qr) => {
 client.on("ready", async () => {
   qrData = null;
   botReady = true;
-  console.log("\n✅ Hoshi-san está lista! Bot de Torneo MLBB conectado~ ⭐\n");
+  console.log("\n✅ Hoshi-chan está lista! Bot de Torneo MLBB conectado~ ⭐\n");
   try {
     console.log(`📱 ID del bot: ${client.info.wid._serialized}`);
   } catch (_) {}
